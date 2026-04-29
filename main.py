@@ -31,6 +31,7 @@ try:
     "download.directory_upgrade": True,
     "safebrowsing.enabled": True
     }
+
     options.add_experimental_option("prefs", prefs)
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
@@ -114,6 +115,7 @@ try:
                     driver.close()
 
             except Exception as e:
+                driver.save_screenshot(f'print/erro_{cnpj_final}.png')
                 logger.error(f"Erro ao processar CNPJ {cnpj_final}: {str(e)}")
                 driver.close()
                 continue

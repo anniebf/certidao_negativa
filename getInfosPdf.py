@@ -1,6 +1,9 @@
 import pdfplumber
 import json
 import re
+from logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 def extrair_dados_especificos(texto):
@@ -27,6 +30,7 @@ def extrair_dados_especificos(texto):
 def extrair_e_salvar_json(caminho_pdf, nome_saida_json):
     texto_completo = ""
     try:
+        logger.info(f"Iniciando extração de dados do PDF: {caminho_pdf}")
         # 1. Extração do texto
         with pdfplumber.open(caminho_pdf) as pdf:
             for pagina in pdf.pages:
@@ -38,17 +42,18 @@ def extrair_e_salvar_json(caminho_pdf, nome_saida_json):
         
         # 2. Processamento dos dados
         dados_dict = extrair_dados_especificos(texto_completo)
+        logger.debug(f"Dados extraídos: {dados_dict}")
         
         # 3. Salvamento do arquivo JSON
         # 'w' abre para escrita, encoding='utf-8' garante acentos corretos
         with open(fr'C:\certidao_negativa\json\{nome_saida_json}', 'w', encoding='utf-8') as f:
             json.dump(dados_dict, f, indent=4, ensure_ascii=False)
             
-        print(f"Sucesso! Arquivo salvo em: {nome_saida_json}")
+        logger.info(f"Sucesso! Arquivo salvo em: {nome_saida_json}")
         return dados_dict
 
     except Exception as e:
-        print(f"Erro no processamento: {e}")
+        logger.error(f"Erro no processamento: {e}")
         return None
 
 if __name__ == "__main__":
