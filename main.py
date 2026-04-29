@@ -84,13 +84,13 @@ try:
                 emitir_nova.click()
                 logger.debug(f"Link 'Emitir nova' clicado para CNPJ {cnpj_final}")
 
-                sleep(50)
+                sleep(100)
 
                 caminho_destino = os.path.join(pasta_final_pdf, f"{cnpj_final}.pdf")
                 download_sucesso = False
 
                 # Espera o arquivo aparecer na pasta_download
-                for i in range(30):
+                for i in range(100):
                     arquivos = os.listdir(diretorio_pdf)
 
                     pdfs = [f for f in arquivos if f.endswith('.pdf') and not f.endswith('.crdownload')]
@@ -112,6 +112,7 @@ try:
                     driver.close()
                 else:
                     logger.warning(f"✗ Erro ao salvar o PDF para CNPJ {cnpj_final}")
+                    driver.save_screenshot(f'print/erro_{cnpj_final}.png')
                     driver.close()
 
             except Exception as e:
