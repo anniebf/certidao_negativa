@@ -5,21 +5,36 @@ from selenium.webdriver.common.by import By
 import getDb
 import shutil
 import os
+import json
 from time import sleep, time
 from logger import setup_logger
 import getInfosPdf
+from api_client import APIClient
 
 logger = setup_logger(__name__)
 
 url = "https://www.sefaz.mt.gov.br/cnd/certidao/servlet/ServletRotdAberto?origem=60"
 diretorio_pdf = fr"C:\certidao_negativa\download"
-pasta_final_pdf = r"C:\certidao_negativa\pdf"
+pasta_final_pdf = fr"C:\certidao_negativa\pdf"
+
+# ========================================================
+# INICIALIZAR CLIENTE DA API UMA VEZ (reutilizado no loop)
+# ========================================================
+# Esta instância será reutilizada para enviar MÚLTIPLOS JSONs
+# A cada iteração do loop, ela envia um JSON diferente
+api_client = APIClient()
+logger.info("Cliente da API inicializado com as configurações:")
+logger.info(f"  - URL: http://10.192.0.193:8885/rest/BFFS01FF/")
+logger.info(f"  - Usuário: Admin")
+logger.info(f"  - Tenant ID: 16,1004004")
+# ========================================================"
 
 for arquivo in os.listdir(diretorio_pdf):
     file_path = os.path.join(diretorio_pdf, arquivo)
     try:
         if os.path.isfile(file_path): os.unlink(file_path)
-    except Exception as e: print(f"Erro ao limpar: {e}")
+    except Exception as e: 
+        logger.warning(f"Erro ao limpar {file_path}: {e}")
 
 try:
     logger.info("Iniciando processo de extração de certidões negativas")
@@ -47,6 +62,7 @@ try:
     for idx, cnpj in enumerate(cnpjFilial, 1):
         cnpj_final = cnpj[0] if isinstance(cnpj, tuple) else cnpj
         logger.info(f"[{idx}/{len(cnpjFilial)}] Processando CNPJ: {cnpj_final}")
+        logger.info("=" * 70)
         
         try:
             driver = webdriver.Chrome(options=options)
@@ -90,7 +106,7 @@ try:
                 download_sucesso = False
 
                 # Espera o arquivo aparecer na pasta_download
-                for i in range(100):
+                for i in range(900):
                     arquivos = os.listdir(diretorio_pdf)
 
                     pdfs = [f for f in arquivos if f.endswith('.pdf') and not f.endswith('.crdownload')]
@@ -108,8 +124,50 @@ try:
 
                 if os.path.exists(caminho_destino):
                     logger.info(f"✓ PDF salvo com sucesso para CNPJ {cnpj_final}")
-                    getInfosPdf.extrair_e_salvar_json(caminho_destino, cnpj_final)
+                    
+                    # ============================================================
+                    # PASSO 1: PDF → JSON (salva arquivo em disco)
+                    # ============================================================
+                    logger.info(f"[PASSO 1] Extraindo dados do PDF para JSON...")
+                    certidao = getInfosPdf.extrair_e_salvar_json(caminho_destino, cnpj_final)
+                    
+                    if certidao:
+                        # ============================================================
+                        # PASSO 2: Verifica arquivo JSON criado
+                        # ============================================================
+                        json_dir = r"C:\certidao_negativa\json"
+                        caminho_json = os.path.join(json_dir, f"{cnpj_final}.json")
+                        logger.info(f"[PASSO 2] Verificando arquivo JSON criado...")
+                        
+                        if os.path.exists(caminho_json):
+                            try:
+                                logger.info(f"  ✓ JSON criado em: {caminho_json}")
+                                
+                                # ============================================================
+                                # PASSO 3: Envia o ARQUIVO JSON para a API
+                                # ============================================================
+                                # IMPORTANTE: A instância 'api_client' é REUTILIZADA!
+                                # - Ela foi criada UMA VEZ no início do script
+                                # - Agora está sendo usada para enviar o JSON deste CNPJ
+                                # - No próximo loop, ela enviará um JSON diferente
+                                # ============================================================
+                                logger.info(f"[PASSO 3] Enviando arquivo JSON para API...")
+                                logger.info(f"  Arquivo: {caminho_json}")
+                                logger.info(f"  Endpoint: http://10.192.0.193:8885/rest/BFFS01FF/")
+                                
+                                resposta_api = api_client.enviar_json_arquivo(caminho_json)
+                                logger.info(f"✓ JSON enviado com sucesso!")
+                                logger.debug(f"  Resposta: {resposta_api}")
+                                
+                            except Exception as e:
+                                logger.error(f"✗ Erro ao enviar JSON para API: {e}")
+                        else:
+                            logger.warning(f"✗ Arquivo JSON não foi criado: {caminho_json}")
+                    else:
+                        logger.warning(f"✗ Falha ao extrair dados do PDF para CNPJ {cnpj_final}")
+                    
                     driver.close()
+                    logger.info("=" * 70)
                 else:
                     logger.warning(f"✗ Erro ao salvar o PDF para CNPJ {cnpj_final}")
                     driver.save_screenshot(f'print/erro_{cnpj_final}.png')

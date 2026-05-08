@@ -2,8 +2,6 @@
 
 > Automação para download e processamento de certidões negativas da SEFAZ-MT
 
-**Projeto criado por:** hianny.urt
-
 ## 📋 Descrição
 
 Este projeto automatiza o processo de:
@@ -204,9 +202,4 @@ dsn=usuario/senha@host:1521/service_name
 
 ## 📜 Licença
 
-Projeto interno - Boa Futuro
-
----
-
-**Criado por:** hianny.urt  
-**Última atualização:** 2024
+Projeto interno - Bom Futuro

@@ -2,11 +2,21 @@ import pdfplumber
 import json
 import re
 from logger import setup_logger
+from models import CertidaoNegativa
 
 logger = setup_logger(__name__)
 
 
-def extrair_dados_especificos(texto):
+def extrair_dados_especificos(texto: str) -> dict:
+    """
+    Extrai dados específicos do PDF usando regex
+    
+    Args:
+        texto: Texto completo extraído do PDF
+        
+    Returns:
+        dict: Dicionário com os dados extraídos
+    """
     # Dicionário de padrões RegEx para encontrar as informações
     padroes = {
         "estado": r"ESTADO DE ([^\n\r]+)",
@@ -24,18 +34,29 @@ def extrair_dados_especificos(texto):
             dados[chave] = match.group(1).strip()
         else:
             dados[chave] = None
+            logger.warning(f"Padrão '{chave}' não encontrado no PDF")
             
     return dados
 
-def extrair_e_salvar_json(caminho_pdf, nome_saida_json):
+def extrair_e_salvar_json(caminho_pdf: str, cnpj: str) -> CertidaoNegativa or None:
+    """
+    Extrai dados do PDF e salva como JSON, retornando objeto CertidaoNegativa
+    
+    Args:
+        caminho_pdf: Caminho do arquivo PDF
+        cnpj: CNPJ para salvar o arquivo JSON
+        
+    Returns:
+        CertidaoNegativa: Objeto com os dados extraídos, ou None se erro
+    """
     texto_completo = ""
     try:
         logger.info(f"Iniciando extração de dados do PDF: {caminho_pdf}")
+        
         # 1. Extração do texto
         with pdfplumber.open(caminho_pdf) as pdf:
             for pagina in pdf.pages:
                 texto_pagina = pagina.extract_text()
-                #print(texto_pagina)
                 if texto_pagina:
                     texto_completo += texto_pagina + "\n"
                     
@@ -44,13 +65,39 @@ def extrair_e_salvar_json(caminho_pdf, nome_saida_json):
         dados_dict = extrair_dados_especificos(texto_completo)
         logger.debug(f"Dados extraídos: {dados_dict}")
         
-        # 3. Salvamento do arquivo JSON
-        # 'w' abre para escrita, encoding='utf-8' garante acentos corretos
-        with open(fr'C:\certidao_negativa\json\{nome_saida_json}', 'w', encoding='utf-8') as f:
-            json.dump(dados_dict, f, indent=4, ensure_ascii=False)
+        # Validar se todos os campos obrigatórios foram encontrados
+        campos_obrigatorios = ["estado", "numero_doc", "data_emissao", "hora_emissao", "validade", "autenticacao"]
+        campos_faltantes = [campo for campo in campos_obrigatorios if not dados_dict.get(campo)]
+        
+        if campos_faltantes:
+            logger.error(f"Campos faltantes no PDF: {campos_faltantes}")
+            return None
+        
+        # 3. Criar objeto CertidaoNegativa
+        certidao = CertidaoNegativa(
+            estado=dados_dict["estado"],
+            numero_doc=dados_dict["numero_doc"],
+            data_emissao=dados_dict["data_emissao"],
+            hora_emissao=dados_dict["hora_emissao"],
+            validade=dados_dict["validade"],
+            autenticacao=dados_dict["autenticacao"],
+            cnpj=cnpj
+        )
+        
+        # 4. Salvar arquivo JSON
+        import os
+        json_dir = r"C:\certidao_negativa\json"
+        if not os.path.exists(json_dir):
+            os.makedirs(json_dir)
             
-        logger.info(f"Sucesso! Arquivo salvo em: {nome_saida_json}")
-        return dados_dict
+        nome_arquivo = f"{cnpj}.json"
+        caminho_json = os.path.join(json_dir, nome_arquivo)
+        
+        with open(caminho_json, 'w', encoding='utf-8') as f:
+            json.dump(certidao.dict(), f, indent=4, ensure_ascii=False)
+            
+        logger.info(f"✓ Arquivo JSON salvo em: {caminho_json}")
+        return certidao
 
     except Exception as e:
         logger.error(f"Erro no processamento: {e}")
