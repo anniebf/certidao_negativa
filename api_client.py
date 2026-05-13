@@ -3,6 +3,10 @@ import asyncio
 from typing import Optional
 from models import CertidaoNegativa
 from logger import setup_logger
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # Carrega variáveis do .env
 
 logger = setup_logger(__name__)
 
@@ -13,9 +17,9 @@ class APIClient:
     def __init__(
         self,
         base_url: str = "http://10.192.0.193:8885/rest/BFFS01FF/",
-        username: str = "Admin",
-        password: str = "Suporte@2026",
-        tenant_id: str = "16,1004004",
+        username: str = os.getenv("username"),
+        password: str = os.getenv("password"),
+        tenant_id: str = os.getenv("tenant_id"),
         timeout: int = 30
     ):
         """

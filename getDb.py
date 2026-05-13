@@ -7,7 +7,6 @@ logger = setup_logger(__name__)
 
 load_dotenv()
 username = os.getenv('usernamedb')
-password = os.getenv('password')
 dsn = os.getenv('dsn')
 
 def resultado():
