@@ -106,8 +106,9 @@ try:
                 download_sucesso = False
 
                 # Espera o arquivo aparecer na pasta_download
-                for i in range(100):
-                    arquivos = os.listdir(diretorio_pdf)
+                try:
+                    for i in range(900):
+                        arquivos = os.listdir(diretorio_pdf)
 
                         pdfs = [f for f in arquivos if f.endswith('.pdf') and not f.endswith('.crdownload')]
                         
