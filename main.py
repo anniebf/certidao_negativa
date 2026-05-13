@@ -93,12 +93,12 @@ try:
 
             try:
                 WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, '//*[@id="form"]/div/div[2]/span')))
-                logger.debug(f"Página de resultado carregada para CNPJ {cnpj_final}")
+                logger.info(f"Página de resultado carregada para CNPJ {cnpj_final}")
 
                 emitir_nova = WebDriverWait(driver, 10).until(
                         EC.element_to_be_clickable((By.XPATH, '/html/body/center/form/div/div[6]/ul/li[2]/a')))
                 emitir_nova.click()
-                logger.debug(f"Link 'Emitir nova' clicado para CNPJ {cnpj_final}")
+                logger.info(f"Link 'Emitir nova' clicado para CNPJ {cnpj_final}")
 
                 sleep(50)
 
@@ -106,20 +106,22 @@ try:
                 download_sucesso = False
 
                 # Espera o arquivo aparecer na pasta_download
-                for i in range(1000):
+                for i in range(100):
                     arquivos = os.listdir(diretorio_pdf)
 
-                    pdfs = [f for f in arquivos if f.endswith('.pdf') and not f.endswith('.crdownload')]
-                    
-                    if pdfs:
-                        arquivo_origem = os.path.join(diretorio_pdf, pdfs[0])
- 
-                        shutil.move(arquivo_origem, caminho_destino)
+                        pdfs = [f for f in arquivos if f.endswith('.pdf') and not f.endswith('.crdownload')]
                         
-                        logger.info(f"Arquivo movido e renomeado para: {caminho_destino}")
-                        download_sucesso = True
-                        break
-                    sleep(1)
+                        if pdfs:
+                            arquivo_origem = os.path.join(diretorio_pdf, pdfs[0])
+    
+                            shutil.move(arquivo_origem, caminho_destino)
+                            
+                            logger.info(f"Arquivo movido e renomeado para: {caminho_destino}")
+                            download_sucesso = True
+                            break
+                        sleep(1)
+                except:
+                    logger.error(f"Erro ao tentar baixar PDF para cnpj {cnpj_final}")
                 
 
                 if os.path.exists(caminho_destino):
@@ -169,7 +171,7 @@ try:
                     driver.close()
                     logger.info("=" * 70)
                 else:
-                    logger.warning(f"✗ Erro ao salvar o PDF para CNPJ {cnpj_final}")
+                    logger.error(f"✗ Erro PDF da filial {cnpj_final} não encontrado na pasta de download")
                     driver.save_screenshot(f'print/erro_{cnpj_final}.png')
                     driver.close()
 

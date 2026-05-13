@@ -82,7 +82,9 @@ certidao_negativa/
 ├── download/              # Pasta temporária de downloads
 ├── pdf/                   # PDFs finais das certidões
 ├── json/                  # JSONs com dados extraídos
-└── logs/                  # Arquivos de log
+├── logs/                  # Arquivos de log
+└── print/                 # Arquivo png da tela na hora do erro
+
 ```
 
 ## 📄 Módulos
